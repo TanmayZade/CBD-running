@@ -86,7 +86,7 @@ const handleSendMessage = async (e: React.FormEvent) => {
 const warningMessage: MessageWithSender = {
   id: `warn-${Date.now()}`,
   content:
-    '🚨 Cyberbullying detected! Please reconsider your words. <a href="https://www.childnet.com/" target="_blank" class="underline text-blue-600 dark:text-blue-400">Learn more</a>.',
+    '🚨 Cyberbullying detected! Bullying others is a punishable offence. Please reconsider your words. <a href="https://www.childnet.com/" target="_blank" class="underline text-blue-600 dark:text-blue-400">Learn more</a>.',
   created_at: new Date().toISOString(),
   sender_id: "system",
   status: "sent",
