@@ -21,6 +21,25 @@ interface ChatInterfaceProps {
   currentUser: User | null
 }
 
+const checkCyberbullying = async (message: string): Promise<string | null> => {
+  try {
+    const response = await fetch('https://cbd-jxji.onrender.com', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: message }),
+    });
+
+    const data = await response.json();
+    return data.result;
+  } catch (error) {
+    console.error('Cyberbullying detection error:', error);
+    return null;
+  }
+};
+
+
 export function ChatInterface({ conversation, messages, currentUser }: ChatInterfaceProps) {
   const [newMessage, setNewMessage] = useState("")
   const [isSending, setIsSending] = useState(false)
@@ -42,40 +61,63 @@ export function ChatInterface({ conversation, messages, currentUser }: ChatInter
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newMessage.trim() || !currentUser || !conversation) return
+const handleSendMessage = async (e: React.FormEvent) => {
+  e.preventDefault()
+  if (!newMessage.trim() || !currentUser || !conversation) return
 
-    setIsSending(true)
-    setError(null)
+  setIsSending(true)
+  setError(null)
 
-    try {
-      // Use the server action to send the message
-      const result = await sendMessage(conversation.id, currentUser.id, newMessage)
-
-      if (!result.success) {
-        setError(result.error || "Failed to send message")
-        return
+  try {
+    // Step 1: Check for cyberbullying
+    const result = await checkCyberbullying(newMessage)
+    if (result && result.includes("Cyberbullying detected")) {
+      // Add warning message locally without sending to backend
+      const warningMessage: MessageWithSender = {
+        id: `warn-${Date.now()}`,
+        content: "🚨 Cyberbullying detected!!",
+        created_at: new Date().toISOString(),
+        sender_id: "system",
+        status: "sent",
+        conversation_id: conversation.id,
+        sender: {
+          id: "system",
+          username: "System",
+          full_name: "System",
+          avatar_url: "/placeholder.svg",
+        },
       }
 
-      // Clear the input
+      setLocalMessages((prev) => [...prev, warningMessage])
       setNewMessage("")
-
-      // Add the message to the local state if it's not already added by the real-time subscription
-      // This provides an optimistic UI update
-      if (result.message) {
-        const messageExists = localMessages.some((m) => m.id === result.message.id)
-        if (!messageExists) {
-          setLocalMessages((prev) => [...prev, result.message])
-        }
-      }
-    } catch (error) {
-      console.error("Error sending message:", error)
-      setError("An unexpected error occurred")
-    } finally {
       setIsSending(false)
+      return
     }
+
+    // Step 2: Send message normally
+    const resultSend = await sendMessage(conversation.id, currentUser.id, newMessage)
+
+    if (!resultSend.success) {
+      setError(resultSend.error || "Failed to send message")
+      return
+    }
+
+    setNewMessage("")
+
+    if (resultSend.message) {
+      const messageExists = localMessages.some((m) => m.id === resultSend.message.id)
+      if (!messageExists) {
+        setLocalMessages((prev) => [...prev, resultSend.message])
+      }
+    }
+  } catch (error) {
+    console.error("Error sending message:", error)
+    setError("An unexpected error occurred")
+  } finally {
+    setIsSending(false)
   }
+}
+
 
   const getConversationName = () => {
     const otherParticipants = conversation.participants.filter((p) => p.id !== currentUser?.id)
