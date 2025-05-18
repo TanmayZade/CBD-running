@@ -23,13 +23,23 @@ interface ChatInterfaceProps {
 
 const checkCyberbullying = async (message: string): Promise<string | null> => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}`, {
+    if (!process.env.NEXT_PUBLIC_API_URL) {
+      console.warn("API URL not set. Skipping cyberbullying check.");
+      return null;
+    }
+
+    const response = await fetch(process.env.NEXT_PUBLIC_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ text: message }),
     });
+
+    if (!response.ok) {
+      console.error("API responded with status", response.status);
+      return null;
+    }
 
     const data = await response.json();
     return data.result;
@@ -73,20 +83,22 @@ const handleSendMessage = async (e: React.FormEvent) => {
     const result = await checkCyberbullying(newMessage)
     if (result && result.includes("Cyberbullying detected")) {
       // Add warning message locally without sending to backend
-      const warningMessage: MessageWithSender = {
-        id: `warn-${Date.now()}`,
-        content: "🚨 Cyberbullying detected!!",
-        created_at: new Date().toISOString(),
-        sender_id: "system",
-        status: "sent",
-        conversation_id: conversation.id,
-        sender: {
-          id: "system",
-          username: "System",
-          full_name: "System",
-          avatar_url: "/placeholder.svg",
-        },
-      }
+const warningMessage: MessageWithSender = {
+  id: `warn-${Date.now()}`,
+  content:
+    '🚨 Cyberbullying detected! Please reconsider your words. <a href="https://www.childnet.com/" target="_blank" class="underline text-blue-600 dark:text-blue-400">Learn more</a>.',
+  created_at: new Date().toISOString(),
+  sender_id: "system",
+  status: "sent",
+  conversation_id: conversation.id,
+  sender: {
+    id: "system",
+    username: "System",
+    full_name: "System",
+    avatar_url: "/placeholder.svg",
+  },
+}
+
 
       setLocalMessages((prev) => [...prev, warningMessage])
       setNewMessage("")
@@ -258,7 +270,20 @@ const handleSendMessage = async (e: React.FormEvent) => {
                       {message.sender?.full_name || message.sender?.username || "Unknown"}
                     </div>
                   )}
-                  <div>{message.content}</div>
+                  <div
+  dangerouslySetInnerHTML={{ __html: message.content }}
+  className={message.sender_id === "system" ? (
+  <div className="w-full">
+    <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 text-sm rounded-md p-3 mb-4" dangerouslySetInnerHTML={{ __html: message.content }} />
+  </div>
+) : (
+  <div className={`flex mb-4 ${message.sender_id === currentUser?.id ? "justify-end" : "justify-start"}`}>
+    {/* existing user message rendering */}
+  </div>
+)}
+
+></div>
+
                   <div className="text-xs mt-1 flex justify-end items-center">
                     {formatTime(message.created_at)}
                     {message.sender_id === currentUser?.id && (
