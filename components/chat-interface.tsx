@@ -23,7 +23,7 @@ interface ChatInterfaceProps {
 
 const checkCyberbullying = async (message: string): Promise<string | null> => {
   try {
-    const response = await fetch('https://cbd-jxji.onrender.com', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
