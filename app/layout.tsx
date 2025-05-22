@@ -8,8 +8,8 @@ import { AuthProvider } from "@/components/auth-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "WhatsApp Clone",
-  description: "A WhatsApp-like chat application",
+  title: "SafeTalk",
+  description: "Chat freely, protected from toxicity with advanced anti-bullying features.",
     generator: 'v0.dev'
 }
 
